@@ -1,4 +1,0 @@
-talend
-======
-
-Talend custom components
