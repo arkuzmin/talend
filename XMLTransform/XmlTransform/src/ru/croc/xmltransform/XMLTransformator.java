@@ -431,20 +431,19 @@ public class XMLTransformator {
 	}
 	
 	private  List<String> getRefsToInt(org.dom4j.Element el) {
-	    	List<String> refsTo = new ArrayList<String>();
-	    	org.dom4j.Attribute attrType = el.attribute("type");
-	    	if (attrType != null)
-	    		refsTo.add(attrType.getValue());
-	    	for (Object o : el.selectNodes("./descendant::*")) {
-	    		org.dom4j.Node n = (org.dom4j.Node)o;
-	    		org.dom4j.Attribute attrRef = ((org.dom4j.Element)n).attribute("ref");
-	    		org.dom4j.Attribute attrBase = ((org.dom4j.Element)n).attribute("base");
-	    		if (attrRef != null)
-	    			refsTo.add(attrRef.getValue());
-	    		if (attrBase != null)
-	    			refsTo.add(attrBase.getValue());
+    	List<String> refsTo = new ArrayList<String>();
+    	org.dom4j.Attribute attrType = el.attribute("type");
+    	if (attrType != null)
+    		refsTo.add(attrType.getValue());
+    	for (Object o : el.selectNodes(".//*")) {
+    		org.dom4j.Node n = (org.dom4j.Node)o;
+    		for (String refType : new String[]{"ref", "base", "type"}) {
+    			org.dom4j.Attribute attr = ((org.dom4j.Element)n).attribute(refType);
+    			if (attr != null)
+	    			refsTo.add(attr.getValue());
 	    	}
-	    	return refsTo;
+    	}
+    	return refsTo;
 	}
 	
 	private  void fillRefs(List<String> parentRefs, String name,
