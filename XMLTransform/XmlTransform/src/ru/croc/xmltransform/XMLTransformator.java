@@ -6,8 +6,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+
 @SuppressWarnings("rawtypes")
 public class XMLTransformator {
+	private static final java.lang.reflect.Method[] XPathMethods = org.dom4j.XPath.class.getDeclaredMethods();
+	
 	public boolean checkString(String str) {
 		return str != null && !"".equals(str);
 	}
@@ -617,8 +622,60 @@ public class XMLTransformator {
             }
         }
     }
+    
+    /**
+	 * Установить корневой элемент
+	 * @param p1 - документ	
+	 * @param p2 - XPath	
+	 */
+    public Object setRoot(Object p1, Object p2) {
+    	if (!(p1 instanceof org.dom4j.Document && 
+  			  p2 instanceof String)) {
+  				return null;
+  			}
+  		
+  		org.dom4j.Document doc = (org.dom4j.Document) p1;
+  		org.dom4j.XPath xp = getXPathWithNS((String)p2, doc);
+  		
+  			org.dom4j.Node n = xp.selectSingleNode(doc);
+  			doc.setRootElement((org.dom4j.Element)n);
+  			return doc;
+  		
+	}
 
-	
-	
-	
+	/**
+	 * Получение значения
+	 * @param p1 - документ	
+	 * @param p2 - XPath	
+	 * @param p3 - метод (
+	 * 				TEXT - получить текст 
+	 * 				NODE_TEXT - получить узел в виде текста, 
+	 * 				NODE - получить узел в новом документе org.dom4j.Document, 
+	 * 			   )
+	 */
+    public Object extract(Object p1, Object p2, Object p3) {
+    	if (!(p1 instanceof org.dom4j.Document && 
+  			  p2 instanceof String && 
+  			  p3 instanceof String)) {
+  				return null;
+  			}
+  		
+  		org.dom4j.Document doc = (org.dom4j.Document) p1;
+  		org.dom4j.XPath xp = getXPathWithNS((String)p2, doc);
+  		String mthd = (String)p3;
+  		
+  		if ("TEXT".equals(mthd)) {
+  			return xp.selectSingleNode(doc).getText();
+  		} else if ("NODE_TEXT".equals(mthd)) {
+  			return xp.selectSingleNode(doc).asXML();
+  		} else if ("NODE".equals(mthd)) {
+  			try {
+				return DocumentHelper.parseText(xp.selectSingleNode(doc).asXML());
+			} catch (DocumentException e) {
+				return null;
+			}
+  		} else {
+  			return null;
+  		}
+	}
 }

@@ -29,15 +29,24 @@ public class XMLTransformatorTest {
       //  Document document2 = DocumentHelper.parseText(text2);
         XMLTransformator tr = new XMLTransformator();
         
-        org.dom4j.Node nd = (org.dom4j.Node) xp.evaluate(document);
+        //org.dom4j.Node nd = (org.dom4j.Node) xp.evaluate(document);
 
        // tr.importNode("/", document, "//xsdSchema/xsd:schema/child::*", );
         //tr.addNewElement("ololo", "trololo", "ns1:WSDataModel/xsdSchema/xsd:schema/child::*", document);
         
+        //System.out.println(document.asXML());
+        
+        //tr.filter(document, "/ns1:WSDataModel/xsdSchema/xsd:schema", "NSIObjects");
+        
+        System.out.println("TEXT: \n" + (String)tr.extract(document, "/ns1:WSDataModel/name", "TEXT"));
+        System.out.println("---");
+        System.out.println("NODE: \n" + ((org.dom4j.Document)tr.extract(document, "/ns1:WSDataModel/xsdSchema/xsd:schema", "NODE")).asXML());
         System.out.println(document.asXML());
-        
-        tr.filter(document, "/ns1:WSDataModel/xsdSchema/xsd:schema", "NSIObjects");
-        
+        System.out.println("---");
+        System.out.println("NODE_TEXT: \n" + (String)tr.extract(document, "/ns1:WSDataModel/xsdSchema/xsd:schema", "NODE_TEXT"));
+        System.out.println("---");
+        System.out.println("SET_ROOT: \n" + ((org.dom4j.Document)tr.setRoot(document, "/ns1:WSDataModel/xsdSchema/xsd:schema")).asXML());
+        System.out.println(document.asXML());
         
         
       
@@ -90,7 +99,7 @@ public class XMLTransformatorTest {
 		
 
 		
-        document.normalize();
-		System.out.println(document.asXML());
+        //document.normalize();
+		//System.out.println(document.asXML());
 	}
 }
