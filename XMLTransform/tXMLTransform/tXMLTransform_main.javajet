@@ -169,7 +169,7 @@
 %>	
 						child_<%=cid%> = <%= param1%>;
 						xmlChild_<%=cid%> = child_<%=cid%>.getDocument();
-						xmlHelper_<%=cid%>.importNode(<%=xPath%>, <%=param2%>, xml_<%=cid%>, xmlChild_<%=cid%>);
+						xmlHelper_<%=cid%>.importNode(<%=xPath%>, <%=param2%>, xml_<%=cid%>, xmlChild_<%=cid%>, <%=param3%>);
 <%
 	}
 	if ("changeNamespace".equals(action)) {

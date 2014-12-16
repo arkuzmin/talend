@@ -419,7 +419,11 @@ public class XMLTransformator {
 		String xPath2 = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
-		nsXPath = (String) p5;
+		String nsXPathParam  = (String) p5;
+		
+		if (nsXPathParam != null && !"".equals(nsXPathParam)) {
+			nsXPath = nsXPathParam;
+		}
 		
 		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
 		org.dom4j.XPath xp2 = getXPathWithNS(xPath2, child);

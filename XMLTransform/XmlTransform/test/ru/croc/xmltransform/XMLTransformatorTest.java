@@ -12,7 +12,7 @@ public class XMLTransformatorTest {
 		Document xml = 	DocumentHelper.parseText("<putUpdateTable><RqUID>5af36faa-398c-485e-a729-1514f822f30a</RqUID><RqTm>2014-12-16T18:59:51</RqTm><SourceSystem>LNSI</SourceSystem><Stations/></putUpdateTable>");
 		tr.importNode("/putUpdateTable/Stations", "/*", 
 				xml, 
-				DocumentHelper.parseText("<test>TESTTETST</test>"), "/");
+				DocumentHelper.parseText("<test>TESTTETST</test>"), "/*");
 		
 		
 		System.out.println(xml.asXML());
