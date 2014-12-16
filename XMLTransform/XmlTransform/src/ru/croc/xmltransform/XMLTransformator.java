@@ -12,6 +12,7 @@ import org.dom4j.DocumentHelper;
 @SuppressWarnings("rawtypes")
 public class XMLTransformator {
 	private static final java.lang.reflect.Method[] XPathMethods = org.dom4j.XPath.class.getDeclaredMethods();
+	private String nsXPath = "//namespace::*";
 	
 	public boolean checkString(String str) {
 		return str != null && !"".equals(str);
@@ -25,7 +26,7 @@ public class XMLTransformator {
 	
 	
 	private Map<String, String> formNSMap(org.dom4j.Document xml) {
-		List list = xml.selectNodes("//namespace::*");
+		List list = xml.selectNodes(nsXPath);
         Map<String, String> nsmap = new HashMap<String, String>();
         for (Object obj : list) {
         	if (obj instanceof org.dom4j.Namespace) {
@@ -404,12 +405,13 @@ public class XMLTransformator {
 	/**
 	* Импорт узла из одного документа в другой.
 	**/
-	public void importNode(Object p1, Object p2, Object p3, Object p4) {
+	public void importNode(Object p1, Object p2, Object p3, Object p4, Object p5) {
 		
 		if (!(p1 instanceof String && 
 			  p2 instanceof String &&
 			  p3 instanceof org.dom4j.Document &&
-			  p4 instanceof org.dom4j.Document)) {
+			  p4 instanceof org.dom4j.Document &&
+			  p5 instanceof String)) {
 			return;
 		}
 		
@@ -417,13 +419,14 @@ public class XMLTransformator {
 		String xPath2 = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
+		nsXPath = (String) p5;
+		
 		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
 		org.dom4j.XPath xp2 = getXPathWithNS(xPath2, child);
 		
 		List list = xp.selectNodes(xml);
 		List list2 = xp2.selectNodes(child);
-		//List list =  xml.selectNodes(xPath);
-   		//List list2 = child.selectNodes(xPath2);
+
 		if (list !=  null && list2 != null) {
 			for (Object node : list) {
 				for (Object node2 : list2) {
