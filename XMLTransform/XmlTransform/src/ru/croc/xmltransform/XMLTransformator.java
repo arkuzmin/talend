@@ -11,20 +11,96 @@ import org.dom4j.DocumentHelper;
 
 @SuppressWarnings("rawtypes")
 public class XMLTransformator {
-	private static final java.lang.reflect.Method[] XPathMethods = org.dom4j.XPath.class.getDeclaredMethods();
 	private String nsXPath = "//namespace::*";
 	
-	public boolean checkString(String str) {
+	private static final String NSM_THIS_XML_DOC_TYPE = "thisXML";
+	private static final String NSM_CHILD_XML_DOC_TYPE = "childXML";
+	private static final String ANSM_DOC_TYPE_KEY = "DOCUMENT";
+	private static final String ANSM_NS_XPATH_KEY = "NS_XPATH";
+	private static final String MNSM_NS_PREFIX_KEY = "NS_PREFIX";
+	private static final String MNSM_NS_URI_KEY = "NS_URI";
+	private static final String MNSM_DOC_TYPE_KEY = "DOCUMENT";
+	
+	private boolean autoSearchNS;
+	private String thisXmlNsXPath = "//namespace::*";
+	private String childXmlNsXPath = "//namespace::*";
+	
+	private Map<String, String> xmlNSMap = new HashMap<String, String>();
+	private Map<String, String> childNSMap = new HashMap<String, String>();
+	
+	public XMLTransformator () {
+	}
+	
+	public XMLTransformator(List<Map<String, String>> nsMapsList, boolean autoSearchNS) {
+		this.autoSearchNS = autoSearchNS;
+		if (nsMapsList != null) {
+			if (autoSearchNS) {
+				formAutoNSMap(nsMapsList);
+			} else {
+				formManualNSMap(nsMapsList);
+			}
+		}
+	}
+	
+	private void formAutoNSMap(List<Map<String, String>> nsMapsList) {	
+		for (Map<String, String> map : nsMapsList) {
+			String docType = map.get(ANSM_DOC_TYPE_KEY);
+			String nsXPath = map.get(ANSM_NS_XPATH_KEY);
+			if (NSM_THIS_XML_DOC_TYPE.equals(docType)) {
+				this.thisXmlNsXPath = nsXPath;
+			} else {
+				this.childXmlNsXPath = nsXPath;
+			}
+		}
+	}
+	
+	private void formManualNSMap(List<Map<String, String>> nsMapsList) {
+		for (Map<String, String> map : nsMapsList) {
+			String docType = map.get(MNSM_DOC_TYPE_KEY);
+			String nsPrefix = map.get(MNSM_NS_PREFIX_KEY);
+			String nsUri = map.get(MNSM_NS_URI_KEY);
+			if (NSM_THIS_XML_DOC_TYPE.equals(docType)) {
+				xmlNSMap.put(nsPrefix, nsUri);
+			} else {
+				childNSMap.put(nsPrefix, nsUri);
+			}
+		}
+	}
+	
+	private boolean stringIsNotEmpty(String str) {
 		return str != null && !"".equals(str);
 	}
 
+	private org.dom4j.XPath formXPathWithNS(String xPath, org.dom4j.Document xml, String docType) {
+		org.dom4j.XPath xp = xml.createXPath(xPath);
+		if (this.autoSearchNS) {
+			xp.setNamespaceURIs(formNSMapByDocType(xml, docType));
+		} else {
+			xp.setNamespaceURIs(NSM_THIS_XML_DOC_TYPE.equals(docType) ? xmlNSMap : childNSMap);
+		}
+		return xp;
+	}
+	
+	@Deprecated
 	private org.dom4j.XPath getXPathWithNS(String xPath, org.dom4j.Document xml) {
 		org.dom4j.XPath xp = xml.createXPath(xPath);
 		xp.setNamespaceURIs(formNSMap(xml));
 		return xp;
 	}
 	
+	private Map<String, String> formNSMapByDocType(org.dom4j.Document xml, String docType) {
+		List list = xml.selectNodes(NSM_THIS_XML_DOC_TYPE.equals(docType) ? thisXmlNsXPath : childXmlNsXPath);
+        Map<String, String> nsmap = new HashMap<String, String>();
+        for (Object obj : list) {
+        	if (obj instanceof org.dom4j.Namespace) {
+        		org.dom4j.Namespace ns = (org.dom4j.Namespace) obj;
+        		nsmap.put(ns.getPrefix(), ns.getURI());
+        	}
+        }
+        return nsmap;
+	}
 	
+	@Deprecated
 	private Map<String, String> formNSMap(org.dom4j.Document xml) {
 		List list = xml.selectNodes(nsXPath);
         Map<String, String> nsmap = new HashMap<String, String>();
@@ -53,7 +129,7 @@ public class XMLTransformator {
 		
 		org.dom4j.Element newEl = null;
 
-		if (checkString(name)) {
+		if (stringIsNotEmpty(name)) {
 			newEl = org.dom4j.DocumentHelper.createElement(name);
 			if (text != null && !"".equals(text)) {
 				newEl.setText(text);
@@ -405,13 +481,12 @@ public class XMLTransformator {
 	/**
 	* Импорт узла из одного документа в другой.
 	**/
-	public void importNode(Object p1, Object p2, Object p3, Object p4, Object p5) {
+	public void importNode(Object p1, Object p2, Object p3, Object p4) {
 		
 		if (!(p1 instanceof String && 
 			  p2 instanceof String &&
 			  p3 instanceof org.dom4j.Document &&
-			  p4 instanceof org.dom4j.Document &&
-			  p5 instanceof String)) {
+			  p4 instanceof org.dom4j.Document)) {
 			return;
 		}
 		
@@ -419,14 +494,9 @@ public class XMLTransformator {
 		String xPath2 = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
-		String nsXPathParam  = (String) p5;
 		
-		if (nsXPathParam != null && !"".equals(nsXPathParam)) {
-			nsXPath = nsXPathParam;
-		}
-		
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
-		org.dom4j.XPath xp2 = getXPathWithNS(xPath2, child);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.XPath xp2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 		List list2 = xp2.selectNodes(child);
