@@ -79,9 +79,28 @@
 	
 	document_<%=cid%> = <%= inRowName%>.<%= xmlColumn%>;
 	xml_<%=cid%> = document_<%=cid%>.getDocument();
-		
-	ru.croc.xmltransform.XMLTransformator xmlHelper_<%=cid%> = new ru.croc.xmltransform.XMLTransformator();
 <%
+	// Параметры работы с NS
+	Boolean useNS = (Boolean)ElementParameterParser.getObjectValue(node,"__USE_NS__");
+	Boolean autoSearchNS = (Boolean)ElementParameterParser.getObjectValue(node,"__USE_NS_AUTO__");
+	Boolean manualManageNS = (Boolean)ElementParameterParser.getObjectValue(node,"__USE_NS_MANUAL__");
+	
+	List<Map<String, String>> nsMap = null;
+	
+	if (useNS) {
+		if (autoSearchNS) {
+			nsMap = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__AUTO_NS_XPATH_TBL__");
+		} else if (manualManageNS) {
+			nsMap = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__MANUAL_NS_XPATH_TBL__");
+		}
+%>
+	ru.croc.xmltransform.XMLTransformator xmlHelper_<%=cid%> = new ru.croc.xmltransform.XMLTransformator(<%=nsMap%>,<%=autoSearchNS%>);
+<%
+	} else {
+%>
+	ru.croc.xmltransform.XMLTransformator xmlHelper_<%=cid%> = new ru.croc.xmltransform.XMLTransformator();
+<%	
+	}
 	// Считываем все необходимые преобразования
 	List<Map<String, String>> transformations = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__TRANSFORMATIONS__");
 	String condition = "";
