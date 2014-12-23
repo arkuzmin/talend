@@ -11,8 +11,6 @@ import org.dom4j.DocumentHelper;
 
 @SuppressWarnings("rawtypes")
 public class XMLTransformator {
-	private String nsXPath = "//namespace::*";
-	
 	private static final String NSM_THIS_XML_DOC_TYPE = "thisXML";
 	private static final String NSM_CHILD_XML_DOC_TYPE = "childXML";
 	private static final String ANSM_DOC_TYPE_KEY = "DOCUMENT";
@@ -81,13 +79,6 @@ public class XMLTransformator {
 		return xp;
 	}
 	
-	@Deprecated
-	private org.dom4j.XPath getXPathWithNS(String xPath, org.dom4j.Document xml) {
-		org.dom4j.XPath xp = xml.createXPath(xPath);
-		xp.setNamespaceURIs(formNSMap(xml));
-		return xp;
-	}
-	
 	private Map<String, String> formNSMapByDocType(org.dom4j.Document xml, String docType) {
 		List list = xml.selectNodes(NSM_THIS_XML_DOC_TYPE.equals(docType) ? thisXmlNsXPath : childXmlNsXPath);
         Map<String, String> nsmap = new HashMap<String, String>();
@@ -99,20 +90,6 @@ public class XMLTransformator {
         }
         return nsmap;
 	}
-	
-	@Deprecated
-	private Map<String, String> formNSMap(org.dom4j.Document xml) {
-		List list = xml.selectNodes(nsXPath);
-        Map<String, String> nsmap = new HashMap<String, String>();
-        for (Object obj : list) {
-        	if (obj instanceof org.dom4j.Namespace) {
-        		org.dom4j.Namespace ns = (org.dom4j.Namespace) obj;
-        		nsmap.put(ns.getPrefix(), ns.getURI());
-        	}
-        }
-        return nsmap;
-	}
-	
 	
 	/**
 	* Создание нового элемента.
@@ -131,7 +108,7 @@ public class XMLTransformator {
 
 		if (stringIsNotEmpty(name)) {
 			newEl = org.dom4j.DocumentHelper.createElement(name);
-			if (text != null && !"".equals(text)) {
+			if (stringIsNotEmpty(text)) {
 				newEl.setText(text);
 			}	
 		}
@@ -156,7 +133,7 @@ public class XMLTransformator {
 		String xPath = (String) p3;
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
 		
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 		if (list !=  null) {
@@ -198,10 +175,9 @@ public class XMLTransformator {
 		String text = (String) p2;
 		String xPath = (String) p3;
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
-		//List list =  xml.selectNodes(xPath);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -232,11 +208,10 @@ public class XMLTransformator {
 		String text = (String) p2;
 		String xPath = (String) p3;
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 	
-		//List list =  xml.selectNodes(xPath);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -265,11 +240,10 @@ public class XMLTransformator {
 		String name = (String) p1;
 		String xPath = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 	
-		//List list =  xml.selectNodes(xPath);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -296,11 +270,10 @@ public class XMLTransformator {
 		String name = (String) p1;
 		String xPath = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 	
-		//List list =  xml.selectNodes(xPath);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -322,11 +295,10 @@ public class XMLTransformator {
 		
 		String xPath = (String) p1;
 		org.dom4j.Document xml = (org.dom4j.Document) p2;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 	
-		//List list =  xml.selectNodes(xPath);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -360,11 +332,9 @@ public class XMLTransformator {
 		String value = (String) p2;
 		String xPath = (String) p3;
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
-	
-		//List list =  xml.selectNodes(xPath);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -388,11 +358,9 @@ public class XMLTransformator {
 		String text = (String) p1;
 		String xPath = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
-	
-		//List list =  xml.selectNodes(xPath);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -418,13 +386,11 @@ public class XMLTransformator {
 		String xPath2 = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
-		org.dom4j.XPath xp2 = getXPathWithNS(xPath2, child);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.XPath xp2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 		List list2 = xp2.selectNodes(child);
-		//List list =  xml.selectNodes(xPath);
-    	//List list2 = child.selectNodes(xPath2);
 		if (list !=  null && list2 != null) {
 			for (Object node : list) {
 				for (Object node2 : list2) {
@@ -456,13 +422,11 @@ public class XMLTransformator {
 		String xPath2 = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
-		org.dom4j.XPath xp2 = getXPathWithNS(xPath2, child);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.XPath xp2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
 		
 		List list = xp.selectNodes(xml);
 		List list2 = xp2.selectNodes(child);
-		//List list =  xml.selectNodes(xPath);
-    	//List list2 = child.selectNodes(xPath2);
 		if (list !=  null && list2 != null) {
 			for (Object node : list) {
 				for (Object node2 : list2) {
@@ -613,7 +577,7 @@ public class XMLTransformator {
 		org.dom4j.Document xml = (org.dom4j.Document) p1;
 		String xPath = (String) p2 + "/child::*";
 		String filterStr = (String) p3;
-		org.dom4j.XPath xp = getXPathWithNS(xPath, xml);
+		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
 		List<String> filter = new LinkedList<String>();
 		
@@ -712,7 +676,7 @@ public class XMLTransformator {
   			}
   		
   		org.dom4j.Document doc = (org.dom4j.Document) p1;
-  		org.dom4j.XPath xp = getXPathWithNS((String)p2, doc);
+  		org.dom4j.XPath xp = formXPathWithNS((String)p2, doc, NSM_THIS_XML_DOC_TYPE);
   		
   			org.dom4j.Node n = xp.selectSingleNode(doc);
   			doc.setRootElement((org.dom4j.Element)n);
@@ -738,7 +702,7 @@ public class XMLTransformator {
   			}
   		
   		org.dom4j.Document doc = (org.dom4j.Document) p1;
-  		org.dom4j.XPath xp = getXPathWithNS((String)p2, doc);
+  		org.dom4j.XPath xp = formXPathWithNS((String)p2, doc, NSM_THIS_XML_DOC_TYPE);
   		String mthd = (String)p3;
   		
   		if ("TEXT".equals(mthd)) {
