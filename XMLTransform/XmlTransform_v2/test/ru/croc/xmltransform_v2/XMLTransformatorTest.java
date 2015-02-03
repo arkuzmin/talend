@@ -1,4 +1,4 @@
-package ru.croc.xmltransform;
+package ru.croc.xmltransform_v2;
 
 import java.util.HashMap;
 import java.util.LinkedList;
