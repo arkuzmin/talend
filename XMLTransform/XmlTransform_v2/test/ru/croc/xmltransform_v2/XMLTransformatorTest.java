@@ -1,5 +1,6 @@
 package ru.croc.xmltransform_v2;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,12 +13,12 @@ public class XMLTransformatorTest {
 	
 	public static void main(String[] args) throws Exception {
 		
-		List<Map<String, String>> nsMap = formAutoNSMap();
-		XMLTransformator tr = new XMLTransformator(nsMap, true);
-		Document xml = 	DocumentHelper.parseText("<m:putUpdateTable xmlns:m=\"http://www.croc.ru/cppk/sac/lnsi/service/\"><RqUID>5af36faa-398c-485e-a729-1514f822f30a</RqUID><RqTm>2014-12-16T18:59:51</RqTm><SourceSystem>LNSI</SourceSystem><Stations></Stations></m:putUpdateTable>");
-		tr.importNode("/m:putUpdateTable/Stations", "/n:test", 
+		List<Map<String, String>> nsMap = formManualNSMap();// new ArrayList<Map<String,String>>(); //formManualNSMap();
+		XMLTransformator tr = new XMLTransformator(nsMap, false);
+		Document xml = 	DocumentHelper.parseText("<putUpdateTable><RqUID>5af36faa-398c-485e-a729-1514f822f30a</RqUID><RqTm>2014-12-16T18:59:51</RqTm><SourceSystem>LNSI</SourceSystem><m:Stations xmlns:m=\"http://www.croc.ru/cppk/sac/lnsi/service/\"></m:Stations></putUpdateTable>");
+		tr.importNode("putUpdateTable/m:Stations", "root/n:test", 
 				xml, 
-				DocumentHelper.parseText("<n:test xmlns:n=\"http://www.croc.ru/cppk/sac/lnsi/service/\">TESTTETST</n:test>"));
+				DocumentHelper.parseText("<root><n:test xmlns:n=\"http://www.croc.ru/cppk/sac/lnsi/service/\">TESTSTETE</n:test></root>"));
 		
 		
 		System.out.println(xml.asXML());
@@ -34,11 +35,11 @@ public class XMLTransformatorTest {
 		map1.put("DOCUMENT", "thisXML");
 		
 		
-		Map<String,String> map2= new HashMap<String, String>();
-		list.add(map2);
-		map2.put("NS_PREFIX", "n");
-		map2.put("NS_URI", "http://www.croc.ru/cppk/sac/lnsi/service/");
-		map2.put("DOCUMENT", "childXML");
+		map1 = new HashMap<String, String>();
+		list.add(map1);
+		map1.put("NS_PREFIX", "n");
+		map1.put("NS_URI", "http://www.croc.ru/cppk/sac/lnsi/service/");
+		map1.put("DOCUMENT", "childXML");
 		
 		return list;
 	}

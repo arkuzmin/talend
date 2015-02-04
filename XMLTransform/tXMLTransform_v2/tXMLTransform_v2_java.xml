@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<COMPONENT> 
+  <HEADER AUTHOR="Croc" 
+          COMPATIBILITY="ALL" 
+          PLATEFORM="ALL" 
+          RELEASE_DATE="20140813B" 
+          SERIAL="" 
+          STARTABLE="false" 
+          STATUS="BETA"
+          SCHEMA_AUTO_PROPAGATE="false"
+          DATA_AUTO_PROPAGATE="false"
+          HAS_CONDITIONAL_OUTPUTS="true"
+          VERSION="0.2"> 
+    <SIGNATURE/> 
+  </HEADER>  
+  <FAMILIES> 
+    <FAMILY>XML</FAMILY>
+  </FAMILIES>  
+  <DOCUMENTATION> 
+    <URL>http://croc.ru</URL> 
+  </DOCUMENTATION>   
+  <CONNECTORS> 
+   <CONNECTOR CTYPE="FLOW" MIN_INPUT="1" MAX_INPUT="1" MIN_OUTPUT="1"/>
+  </CONNECTORS>  
+  <PARAMETERS>
+   <PARAMETER NAME="SCHEMA" FIELD="SCHEMA_TYPE" REQUIRED="true" NUM_ROW="1"/>
+   <PARAMETER NAME="DOCUMENT_COL" FIELD="COLUMN_LIST" NUM_ROW="2"/>
+   <PARAMETER NAME="TRANSFORMATIONS" FIELD="TABLE" NUM_ROW="3" NB_LINES="5">
+   	<ITEMS>
+   		<ITEM NAME="CONDITION" FIELD="TEXT" VALUE="true"></ITEM>
+   		<ITEM NAME="XPATH" FIELD="TEXT" VALUE='""'></ITEM>
+        <ITEM NAME="ACTION" FIELD="CLOSED_LIST">
+            <ITEMS DEFAULT="addNode">
+                <ITEM NAME="addNode" VALUE="addNode"/>
+                <ITEM NAME="insertBefore" VALUE="insertBefore"/>
+                <ITEM NAME="insertAfter" VALUE="insertAfter"/>
+                <ITEM NAME="setNodeName" VALUE="setNodeName"/>
+                <ITEM NAME="removeNode" VALUE="removeNode"/>
+                <ITEM NAME="addAttribute" VALUE="addAttribute"/>
+                <ITEM NAME="removeAttribute" VALUE="removeAttribute"/>
+                <ITEM NAME="setNodeText" VALUE="setNodeText"/>
+                <ITEM NAME="importBefore" VALUE="importBefore"/>
+                <ITEM NAME="importAfter" VALUE="importAfter"/>
+                <ITEM NAME="importNode" VALUE="importNode"/>
+                <ITEM NAME="changeNamespace" VALUE="changeNamespace"/>
+                <ITEM NAME="filter" VALUE="filter"/>
+                <ITEM NAME="setRoot" VALUE="setRoot"/>
+                <ITEM NAME="extract" VALUE="extract"/>
+            </ITEMS>
+        </ITEM>
+        <ITEM NAME="P1" FIELD="TEXT" VALUE='""'></ITEM>
+        <ITEM NAME="P2" FIELD="TEXT" VALUE='""'></ITEM>
+        <ITEM NAME="P3" FIELD="TEXT" VALUE='""'></ITEM>
+   	</ITEMS>
+   </PARAMETER>
+   <PARAMETER NAME="USE_NS" FIELD="CHECK" NUM_ROW="4"/>
+   <PARAMETER NAME="USE_NS_AUTO" FIELD="CHECK" NUM_ROW="5" SHOW_IF="USE_NS=='true'"/>
+   <PARAMETER NAME="AUTO_NS_XPATH_TBL" FIELD="TABLE" NUM_ROW="6" NB_LINES="5" SHOW_IF="USE_NS_AUTO=='true'">
+   <ITEMS>
+   		<ITEM NAME="NS_XPATH" FIELD="TEXT" VALUE='""'></ITEM>
+   		<ITEM NAME="DOCUMENT" FIELD="CLOSED_LIST">
+            <ITEMS DEFAULT="thisXML">
+                <ITEM NAME="thisXML" VALUE="thisXML"/>
+                <ITEM NAME="childXML" VALUE="childXML"/>
+            </ITEMS>
+        </ITEM>
+   </ITEMS>
+   </PARAMETER>
+   <PARAMETER NAME="USE_NS_MANUAL" FIELD="CHECK" NUM_ROW="7" SHOW_IF="USE_NS=='true'"/>
+   <PARAMETER NAME="MANUAL_NS_XPATH_TBL" FIELD="TABLE" NUM_ROW="8" NB_LINES="5" SHOW_IF="USE_NS_MANUAL=='true'">
+   <ITEMS>
+   		<ITEM NAME="NS_PREFIX" FIELD="TEXT" VALUE='""'></ITEM>
+   		<ITEM NAME="NS_URI" FIELD="TEXT" VALUE='""'></ITEM>
+   		<ITEM NAME="DOCUMENT" FIELD="CLOSED_LIST">
+            <ITEMS DEFAULT="thisXML">
+                <ITEM NAME="thisXML" VALUE="thisXML"/>
+                <ITEM NAME="childXML" VALUE="childXML"/>
+            </ITEMS>
+        </ITEM>
+   </ITEMS>
+   </PARAMETER>
+   <PARAMETER NAME="DESCRIPTION" FIELD="MEMO" NUM_ROW="9" NB_LINES="15">
+   	<DEFAULT>
+ACTIONS:
+----------------------------
+   	1. "addNode" - appends a new node with the name (param1) and text (param2) at (xPath);
+   	2. "insertBefore" - adds a new node with the name (param1) and text (param2) before (xPath);
+   	3. "insertAfter" - adds a new node with the name (param1) and text (param2) after (xPath);
+   	4. "setNodeName" - sets the name (param1) to the node at (xPath);
+   	5. "removeNode" - removes the node at (xPath);
+   	6. "addAttribute" - adds a new attribute with name (param1) and value (param2) to the node at (xPath);
+   	7. "removeAttribute" - removes attribute with name (param1) from the node at (xPath);
+   	8. "setNodeText" - sets the text (param1) to the node at (xPath);
+   	9. "importBefore" - imports nodes at (xPath = param2) of document (param1) before nodes at (xPath) of this document;
+   	10. "importAfter" - imports nodes at (xPath = param2) of document (param1) after nodes at (xPath) of this document;
+   	11. "importNode" - appends node from xml (param1) at xPath (param2) to this xml at (xPath);
+   	12. "changeNamespace" - changes old ns (param1) in this xml to new ns (param3) with prefix (param2);
+   	13. "filter" - filters this xml at (xPath) by filter (param1);
+   	14. "setRoot" - sets root node to this xml using node at (xPath);
+   	15. "extract" - extracts data from this xml at (xPath) by method (param1) and put it to output (param2)
+   	                TEXT - get text 
+                    NODE_TEXT - get node as text, 
+                    NODE - get node in a new org.dom4j.Document, 
+   	</DEFAULT>
+   </PARAMETER>
+  </PARAMETERS>
+<ADVANCED_PARAMETERS>
+</ADVANCED_PARAMETERS>
+    <CODEGENERATION>
+    <IMPORTS>
+      <IMPORT
+        NAME="Java_DOM4J1.6"
+        MODULE="dom4j-1.6.1.jar" UrlPath="platform:/plugin/org.talend.libraries.dom4j-jaxen/lib/dom4j-1.6.1.jar"
+        REQUIRED="true"
+      />
+      <IMPORT
+        NAME="Java_JAXEN1.1"
+        MODULE="jaxen-1.1.1.jar" UrlPath="platform:/plugin/org.talend.libraries.apache.axis2/lib/jaxen-1.1.1.jar"
+        REQUIRED="true"
+      />
+      <IMPORT NAME="XML_Transform" MODULE="xmltransform_v2.jar" REQUIRED="true"/>
+    </IMPORTS>
+  </CODEGENERATION>
+  <RETURNS> 
+    <RETURN AVAILABILITY="AFTER" NAME="NB_LINE" TYPE="id_Integer"/> 
+  </RETURNS> 
+</COMPONENT>
