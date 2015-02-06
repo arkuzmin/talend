@@ -97,7 +97,7 @@ ACTIONS:
    	12. "changeNamespace" - changes old ns (param1) in this xml to new ns (param3) with prefix (param2);
    	13. "filter" - filters this xml at (xPath) by filter (param1);
    	14. "setRoot" - sets root node to this xml using node at (xPath);
-   	15. "extract" - extracts data from this xml at (xPath) by method (param1) and put it to output (param2)
+   	15. "extract" - extracts data from this xml at (xPath) by method (param1) and puts it to output (param2)
    	                TEXT - get text 
                     NODE_TEXT - get node as text, 
                     NODE - get node in a new org.dom4j.Document, 
@@ -115,6 +115,8 @@ ACTIONS:
                 <ITEM NAME="long" VALUE="long"/>
                 <ITEM NAME="double" VALUE="double"/>
                 <ITEM NAME="boolean" VALUE="boolean"/>
+                <ITEM NAME="Object" VALUE="Object"/>
+                <ITEM NAME="Document" VALUE="routines.system.Document"/>
             </ITEMS>
         </ITEM>
    		<ITEM NAME="DEFAULT_VALUE" FIELD="TEXT"></ITEM>
