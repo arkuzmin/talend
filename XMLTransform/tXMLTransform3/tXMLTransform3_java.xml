@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<COMPONENT>
+	<HEADER AUTHOR="Croc" COMPATIBILITY="ALL" PLATEFORM="ALL" RELEASE_DATE="20140813B" SERIAL="" STARTABLE="false" STATUS="BETA" SCHEMA_AUTO_PROPAGATE="false" DATA_AUTO_PROPAGATE="false" HAS_CONDITIONAL_OUTPUTS="true" VERSION="0.2">
+		<SIGNATURE/>
+	</HEADER>
+	<FAMILIES>
+		<FAMILY>XML</FAMILY>
+	</FAMILIES>
+	<DOCUMENTATION>
+		<URL>http://croc.ru</URL>
+	</DOCUMENTATION>
+	<CONNECTORS>
+		<CONNECTOR CTYPE="FLOW" MAX_INPUT="1" MAX_OUTPUT="0"/>
+		<CONNECTOR NAME="OUTPUT" CTYPE="FLOW" MAX_OUTPUT="1" BASE_SCHEMA="FLOW"/>
+		<CONNECTOR CTYPE="COMPONENT_OK"/>
+		<CONNECTOR CTYPE="RUN_IF"/>
+	</CONNECTORS>
+	<PARAMETERS>
+		<PARAMETER NAME="INPUT_SCHEMA" FIELD="SCHEMA_TYPE" REQUIRED="true" NUM_ROW="1" />
+		<PARAMETER NAME="SCHEMA" FIELD="SCHEMA_TYPE" REQUIRED="true" NUM_ROW="2" CONTEXT="OUTPUT"/>
+		<PARAMETER NAME="DOCUMENT_COL" FIELD="PREV_COLUMN_LIST" REQUIRED="true" NUM_ROW="3" CONTEXT="OUTPUT"/>
+		<PARAMETER NAME="TRANSFORMATIONS" FIELD="TABLE" NUM_ROW="4" NB_LINES="10">
+			<ITEMS>
+				<ITEM NAME="CONDITION" FIELD="TEXT" VALUE="true"/>
+				<ITEM NAME="XPATH" FIELD="TEXT" VALUE='""'/>
+				<ITEM NAME="ACTION" FIELD="CLOSED_LIST">
+					<ITEMS DEFAULT="addNode">
+						<ITEM NAME="addNode" VALUE="addNode"/>
+						<ITEM NAME="insertBefore" VALUE="insertBefore"/>
+						<ITEM NAME="insertAfter" VALUE="insertAfter"/>
+						<ITEM NAME="setNodeName" VALUE="setNodeName"/>
+						<ITEM NAME="removeNode" VALUE="removeNode"/>
+						<ITEM NAME="addAttribute" VALUE="addAttribute"/>
+						<ITEM NAME="removeAttribute" VALUE="removeAttribute"/>
+						<ITEM NAME="setNodeText" VALUE="setNodeText"/>
+						<ITEM NAME="importBefore" VALUE="importBefore"/>
+						<ITEM NAME="importAfter" VALUE="importAfter"/>
+						<ITEM NAME="importNode" VALUE="importNode"/>
+						<ITEM NAME="changeNamespace" VALUE="changeNamespace"/>
+						<ITEM NAME="filter" VALUE="filter"/>
+						<ITEM NAME="setRoot" VALUE="setRoot"/>
+						<ITEM NAME="extract" VALUE="extract"/>
+						<ITEM NAME="setVariable" VALUE="setVariable"/>
+					</ITEMS>
+				</ITEM>
+				<ITEM NAME="P1" FIELD="TEXT" VALUE='""'/>
+				<ITEM NAME="P2" FIELD="TEXT" VALUE='""'/>
+				<ITEM NAME="P3" FIELD="TEXT" VALUE='""'/>
+			</ITEMS>
+		</PARAMETER>
+		<PARAMETER NAME="USE_NS_DEFAULT" FIELD="RADIO" REQUIRED="true" NUM_ROW="5" GROUP="NSMODE">
+			<DEFAULT>true</DEFAULT>
+		</PARAMETER>
+		<PARAMETER NAME="USE_NS_AUTO" FIELD="RADIO" REQUIRED="true" NUM_ROW="6" GROUP="NSMODE"/>
+		<PARAMETER NAME="AUTO_NS_XPATH_TBL" FIELD="TABLE" NUM_ROW="7" NB_LINES="5" SHOW_IF="USE_NS_AUTO=='true'" GROUP="NSMODE">
+			<ITEMS>
+				<ITEM NAME="NS_XPATH" FIELD="TEXT" VALUE='""'/>
+				<ITEM NAME="DOCUMENT" FIELD="CLOSED_LIST">
+					<ITEMS DEFAULT="thisXML">
+						<ITEM NAME="thisXML" VALUE="thisXML"/>
+						<ITEM NAME="childXML" VALUE="childXML"/>
+					</ITEMS>
+				</ITEM>
+			</ITEMS>
+		</PARAMETER>
+		<PARAMETER NAME="USE_NS_MANUAL" FIELD="RADIO" REQUIRED="true" NUM_ROW="8" GROUP="NSMODE"/>
+		<PARAMETER NAME="MANUAL_NS_XPATH_TBL" FIELD="TABLE" NUM_ROW="9" NB_LINES="5" SHOW_IF="USE_NS_MANUAL=='true'" GROUP="NSMODE">
+			<ITEMS>
+				<ITEM NAME="NS_PREFIX" FIELD="TEXT" VALUE='""'/>
+				<ITEM NAME="NS_URI" FIELD="TEXT" VALUE='""'/>
+				<ITEM NAME="DOCUMENT" FIELD="CLOSED_LIST">
+					<ITEMS DEFAULT="thisXML">
+						<ITEM NAME="thisXML" VALUE="thisXML"/>
+						<ITEM NAME="childXML" VALUE="childXML"/>
+					</ITEMS>
+				</ITEM>
+			</ITEMS>
+		</PARAMETER>
+		<PARAMETER NAME="USE_NS_TEXT" FIELD="RADIO" REQUIRED="true" NUM_ROW="10" GROUP="NSMODE"/>
+		<PARAMETER NAME="NS_TEXT_THIS" FIELD="TEXT" REQUIRED="true" NUM_ROW="11" SHOW_IF="USE_NS_TEXT=='true'" GROUP="NSMODE">
+			<DEFAULT>""</DEFAULT>
+		</PARAMETER>
+		<PARAMETER NAME="NS_TEXT_CHILD" FIELD="TEXT" REQUIRED="true" NUM_ROW="12" SHOW_IF="USE_NS_TEXT=='true'" GROUP="NSMODE">
+			<DEFAULT>""</DEFAULT>
+		</PARAMETER>
+		<PARAMETER NAME="NS_RUN_ONCE" FIELD="CHECK" REQUIRED="true" NUM_ROW="13" SHOW_IF="USE_NS_DEFAULT=='false'" GROUP="NSMODE">
+			<DEFAULT>true</DEFAULT>
+		</PARAMETER>
+		<PARAMETER NAME="DESCRIPTION" FIELD="LABEL" REQUIRED="false" SHOW="true" NUM_ROW="14"/>
+	</PARAMETERS>
+	<ADVANCED_PARAMETERS>
+		<PARAMETER NAME="VARIABLES" FIELD="TABLE" NUM_ROW="1" NB_LINES="10">
+			<ITEMS>
+				<ITEM NAME="NAME" FIELD="TEXT"/>
+				<ITEM NAME="TYPE" FIELD="CLOSED_LIST">
+					<ITEMS DEFAULT="String">
+						<ITEM NAME="String" VALUE="String"/>
+						<ITEM NAME="int" VALUE="int"/>
+						<ITEM NAME="long" VALUE="long"/>
+						<ITEM NAME="double" VALUE="double"/>
+						<ITEM NAME="boolean" VALUE="boolean"/>
+						<ITEM NAME="Object" VALUE="Object"/>
+						<ITEM NAME="Document" VALUE="routines.system.Document"/>
+						<ITEM NAME="List" VALUE="java.util.List"/>
+					</ITEMS>
+				</ITEM>
+				<ITEM NAME="DEFAULT_VALUE" FIELD="TEXT"/>
+			</ITEMS>
+		</PARAMETER>
+	</ADVANCED_PARAMETERS>
+	<CODEGENERATION>
+		<IMPORTS>
+			<IMPORT NAME="Java_DOM4J1.6" MODULE="dom4j-1.6.1.jar" UrlPath="platform:/plugin/org.talend.libraries.dom4j-jaxen/lib/dom4j-1.6.1.jar" REQUIRED="true"/>
+			<IMPORT NAME="Java_JAXEN1.1" MODULE="jaxen-1.1.1.jar" UrlPath="platform:/plugin/org.talend.libraries.apache.axis2/lib/jaxen-1.1.1.jar" REQUIRED="true"/>
+			<IMPORT NAME="XML_Transform" MODULE="xmltransform_v2.jar" REQUIRED="true"/>
+		</IMPORTS>
+	</CODEGENERATION>
+	<RETURNS>
+		<RETURN AVAILABILITY="AFTER" NAME="NB_LINE" TYPE="id_Integer"/>
+	</RETURNS>
+</COMPONENT>

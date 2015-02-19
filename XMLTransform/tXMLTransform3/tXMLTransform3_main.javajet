@@ -1,0 +1,360 @@
+<%@ jet 
+	imports="
+    org.talend.core.model.metadata.IMetadataColumn
+    org.talend.core.model.metadata.IMetadataTable
+    org.talend.core.model.process.EConnectionType
+    org.talend.core.model.process.IConnection
+    org.talend.core.model.process.INode
+    org.talend.designer.codegen.config.CodeGeneratorArgument
+    java.util.List
+    java.util.Map
+    java.util.ArrayList
+	org.talend.core.model.process.ElementParameterParser
+	" 
+%>
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+	
+	String inRowName = "";
+	String outRowName = "";
+	
+	IMetadataTable preMetadata = null;
+	IMetadataTable preMetadataOut = null;
+	
+	if ((node.getIncomingConnections() != null ) && (node.getIncomingConnections().size() > 0)) {
+		preMetadata = node.getIncomingConnections().get(0).getMetadataTable();
+		inRowName = node.getIncomingConnections().get(0).getName(); 
+	}
+	
+	if ((node.getOutgoingConnections() != null ) && (node.getOutgoingConnections().size() > 0)) {
+		preMetadataOut = node.getOutgoingConnections().get(0).getMetadataTable();
+	}
+
+	// Получаем название столбца, содержащего XML документ
+	String xmlColumn = ElementParameterParser.getValue(node, "__DOCUMENT_COL__");
+	
+	List<IMetadataColumn> columns = preMetadata.getListColumns();
+	List<IMetadataColumn> columnsOut = preMetadataOut == null ? new ArrayList<IMetadataColumn>() : preMetadataOut.getListColumns();
+	Map<String, IMetadataColumn> columnsOutMap = new java.util.HashMap<String, IMetadataColumn>();
+	for (IMetadataColumn c : columnsOut)
+		columnsOutMap.put(c.getLabel(), c);
+	
+%>
+    // copying data from input to output
+<%
+	List< ? extends IConnection> outConns = node.getOutgoingConnections();
+    
+    for (IConnection conn : outConns) { 
+    	if (conn.getLineStyle().equals(EConnectionType.FLOW_MAIN)||conn.getLineStyle().equals(EConnectionType.FLOW_MERGE)) {
+        	outRowName = conn.getName();
+%>
+  			<%=outRowName %> = new <%=outRowName %>Struct();
+<%
+       } 
+    } 
+	
+	for (IMetadataColumn column : columnsOut)
+		for (IMetadataColumn columnIn : columns)
+			if ( column.getLabel().equals(columnIn.getLabel()) ) {
+				
+ 		
+    	for (IConnection conn : outConns) {
+     		if (conn.getLineStyle().equals(EConnectionType.FLOW_MAIN) || conn.getLineStyle().equals(EConnectionType.FLOW_MERGE)) {
+       			outRowName = conn.getName();
+       			
+ %>
+ 				<%=outRowName %>.<%=column.getLabel() %> =  <%=inRowName %>.<%=column.getLabel() %>;
+ <%
+       		} 
+    	} 
+	} 
+%>
+	// modifing data
+	Document document_<%=cid%> = null;
+	Document child_<%=cid%>  = null;
+	org.dom4j.Document xml_<%=cid%> = null;
+	org.dom4j.Document xmlChild_<%=cid%> = null;
+	
+	document_<%=cid%> = <%= inRowName%>.<%= xmlColumn%>;
+	xml_<%=cid%> = document_<%=cid%>.getDocument();
+<%
+	// Параметры работы с NS
+	Boolean autoSearchNS = (Boolean)ElementParameterParser.getObjectValue(node,"__USE_NS_AUTO__");
+	Boolean manualManageNS = (Boolean)ElementParameterParser.getObjectValue(node,"__USE_NS_MANUAL__");
+	Boolean textToNS = (Boolean)ElementParameterParser.getObjectValue(node,"__USE_NS_TEXT__");
+	Boolean useNS = ! (Boolean)ElementParameterParser.getObjectValue(node,"__USE_NS_DEFAULT__");
+	Boolean runOnceNS = (Boolean)ElementParameterParser.getObjectValue(node,"__NS_RUN_ONCE__");
+	
+	if (runOnceNS) {
+%>	
+	if (nsMap_<%=cid%> == null) {
+<%
+	}
+%>
+		nsMap_<%=cid%> = new java.util.ArrayList<java.util.Map<String, String>>();
+		m_<%=cid%> = null;
+<%	
+	List<Map<String, String>> nsMapNotGenerated = null;
+	if (useNS && !textToNS) {
+		if (autoSearchNS) {
+			nsMapNotGenerated = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__AUTO_NS_XPATH_TBL__");
+		} else if (manualManageNS) {
+			nsMapNotGenerated = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__MANUAL_NS_XPATH_TBL__");
+		}
+		for (Map<String, String> map : nsMapNotGenerated) {
+%>
+		m_<%=cid%> = new java.util.HashMap<String, String>();
+		nsMap_<%=cid%>.add(m_<%=cid%>);
+<%
+			for (String mapKey : map.keySet()) {
+				String key = mapKey.replaceAll("\"","");
+				String value = map.get(key).replaceAll("\"","");
+%>
+		m_<%=cid%>.put("<%=key%>","<%=value%>");
+<%
+			}
+		}
+	}
+	if (textToNS) {
+		String nsTextThis = (String)ElementParameterParser.getObjectValue(node,"__NS_TEXT_THIS__");
+		String nsTextChild = (String)ElementParameterParser.getObjectValue(node,"__NS_TEXT_CHILD__");
+		Map<String, String> nsTextM = new java.util.HashMap<String, String>();
+		if (nsTextThis != null && ! "".equals(nsTextThis.trim())) nsTextM.put("thisXML", nsTextThis);
+		if (nsTextChild != null && ! "".equals(nsTextChild.trim())) nsTextM.put("childXML", nsTextChild);
+		for (Map.Entry<String, String> nsTextMi : nsTextM.entrySet()) {
+			String nsType = nsTextMi.getKey();
+			String nsExpr = nsTextMi.getValue();
+%>
+		if ((<%=nsExpr %>) != null) {
+			for (String ns : (<%=nsExpr %>).split("\n")) {
+				String[] nsitL = ns.split("=");
+				if (nsitL == null || nsitL.length != 2 || "".equals(nsitL[0].trim()) ) continue;
+				
+				m_<%=cid%> = new java.util.HashMap<String, String>();
+				nsMap_<%=cid%>.add(m_<%=cid%>);
+				m_<%=cid%>.put("NS_URI", nsitL[1].trim());
+				m_<%=cid%>.put("DOCUMENT", "<%=nsType%>");
+				m_<%=cid%>.put("NS_PREFIX", nsitL[0].trim());
+			}
+		}
+<%
+		}
+	}
+	if (useNS) {
+%>
+		xmlHelper_<%=cid%> = new ru.croc.xmltransform_v2.XMLTransformator(nsMap_<%=cid%>,<%=autoSearchNS%>);
+<%
+	}
+
+	if (runOnceNS) {
+%>	
+	}
+<%
+	}
+%>
+
+
+<%
+	// Считываем все переменные
+	List<Map<String, String>> variables = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__VARIABLES__");
+	
+	String varName = "";
+	String expression = "";
+	String expressionType = "";
+	
+	// map keys
+	final String varNameK = "NAME";
+	final String expressionK = "EXPRESSION";
+	final String expressionTypeK = "EXPRESSION_TYPE";
+	
+	// Считываем все необходимые преобразования
+	List<Map<String, String>> transformations = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__TRANSFORMATIONS__");
+	String condition = "";
+	String xPath = "";
+	String action = "";
+	String param1 = "";
+	String param2 = "";
+	String param3 = "";
+	Boolean isParam2Var = false;
+	
+	// map keys
+	final String conditionK = "CONDITION";
+	final String actionK = "ACTION";
+	final String xPathK = "XPATH";
+	final String p1K = "P1";
+	final String p2K= "P2";
+	final String p3K = "P3";
+	
+	if (transformations.size() > 0) { // trans_start
+		for(Map<String, String> map : transformations) {
+			condition = map.get(conditionK);
+			condition = condition.replace("Var.", cid.concat("_"));	
+			xPath = map.get(xPathK) == null ? "" : map.get(xPathK);
+			xPath = xPath.replace("Var.", cid.concat("_"));	
+			action = map.get(actionK) == null ? "" : map.get(actionK);
+			action = action.replace("Var.", cid.concat("_"));
+			param1 = map.get(p1K) == null ? "" : map.get(p1K);
+			param1 = param1.replace("Var.", cid.concat("_"));
+			param2 = map.get(p2K) == null ? "" : map.get(p2K);
+			isParam2Var = param2.trim().startsWith("Var.");
+			param2 = param2.replace("Var.", cid.concat("_"));	
+			param3 = map.get(p3K) == null ? "" : map.get(p3K);
+			param3 = param3.replace("Var.", cid.concat("_"));
+			
+%>	
+				if (<%=condition%>) { // condition_start
+<%
+	if ("addNode".equals(action)) {
+%>	
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+				  		xmlHelper_<%=cid%>.addNewElement(<%=param1%>, <%=param2%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
+	if ("removeNode".equals(action)) {
+%>	
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.removeElement(<%=xPath%>, xml_<%=cid%>);
+<%	
+	}
+	if ("addAttribute".equals(action)) {
+%>
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.addAttr(<%=param1%>, <%=param2%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
+	if ("removeAttribute".equals(action)) {
+%>
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.removeAttr(<%=param1%>, <%=xPath%>, xml_<%=cid%>);  	
+<%
+	}
+	if ("setNodeName".equals(action)) {
+%>
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.renameElement(<%=param1%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
+	if ("insertBefore".equals(action)) {
+%>	
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.insertBefore(<%=param1%>, <%=param2%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
+	if ("insertAfter".equals(action)) {
+%>			
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.insertAfter(<%=param1%>, <%=param2%>, <%=xPath%>, xml_<%=cid%>);	
+<%
+	}
+	if ("setNodeText".equals(action)) {
+%>						
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.setNodeText(<%=param1%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
+	if ("importBefore".equals(action)) {
+%>					
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						child_<%=cid%> = <%= param1%>;
+						xmlChild_<%=cid%> = child_<%=cid%>.getDocument();
+						xmlHelper_<%=cid%>.importBefore(<%=xPath%>, <%=param2%>, xml_<%=cid%>, xmlChild_<%=cid%>);
+<%
+	}
+	if ("importAfter".equals(action)) {
+%>				
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						child_<%=cid%> = <%= param1%>;
+						xmlChild_<%=cid%> = child_<%=cid%>.getDocument();
+						xmlHelper_<%=cid%>.importAfter(<%=xPath%>, <%=param2%>, xml_<%=cid%>, xmlChild_<%=cid%>);
+<%
+	}
+	if ("importNode".equals(action)) {
+%>	
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						child_<%=cid%> = <%= param1%>;
+						xmlChild_<%=cid%> = child_<%=cid%>.getDocument();
+						xmlHelper_<%=cid%>.importNode(<%=xPath%>, <%=param2%>, xml_<%=cid%>, xmlChild_<%=cid%>);
+<%
+	}
+	if ("changeNamespace".equals(action)) {
+%>	
+					if ((<%=param3%> != null && !"".equals(<%=param3%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.changeNamespace(xml_<%=cid%>, <%=param1%>, <%=param2%>, <%=param3%>);
+<%
+	}
+	if ("filter".equals(action)) {
+%>	
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.filter(xml_<%=cid%>, <%=xPath%>, <%=param1%>);
+<%
+	}
+	if ("setRoot".equals(action)) {
+%>	
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.setRoot(xml_<%=cid%>, <%=xPath%>);
+<%
+	}
+	if ("extract".equals(action)) {
+		boolean isList = param1 != null && param1.startsWith("LIST_");
+		param1 = param1.replace("LIST_", "");
+		String itemType = "NODE".equals(param1) ? "org.dom4j.Document" : "String";
+		String colType = isList ? "java.util.List<" + itemType + ">" : itemType;
+%>
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						Object extrResult = xmlHelper_<%=cid%>.extract(xml_<%=cid%>, <%=xPath%>, "<%=param1%>", <%=isList%>);
+<%
+		if (param3 == null || "".equals(param3)) param3 = "ITEM";
+		if (isList) {
+%>
+						java.util.List<Object> extrResult2 = new java.util.ArrayList<Object>();
+						for (<%=itemType %> ITEM : ((java.util.List<<%=itemType %>>)extrResult)) {
+							extrResult2.add(<%=param3%>);
+						}
+						extrResult = extrResult2;
+<%
+		} else {
+%>
+						<%=colType %> ITEM = (<%=colType %>)extrResult;
+						extrResult = <%=param3%>;
+<%
+		}
+		if (isParam2Var) {
+%>
+						<%=param2 %> = (<%=colType %>)extrResult;
+<%
+		} else {
+			for (IConnection conn : outConns) {
+				if (conn.getLineStyle().equals(EConnectionType.FLOW_MAIN) || conn.getLineStyle().equals(EConnectionType.FLOW_MERGE)) {
+					outRowName = conn.getName();
+%>						
+						<%=outRowName %>.<%=param2 %> =  (<%=colType %>)extrResult;
+<%
+				}
+			}
+		}
+	}
+	if ("setVariable".equals(action)) {
+		// Работа с переменными
+		varName = param1 == null ? "" : param1.trim();
+		expression = param2.replace("Var.", cid.concat("_"));
+%>
+					if ( !"".equals("<%=varName%>") ) { // xPath_start
+						<%=cid %>_<%=varName %> = <%=expression %>;
+<%
+	}
+%>
+				 	} // xPath_end		
+				} // condition_end
+				
+				
+<%
+            } 
+    } // trans_end 
+%>
+
+
+
+
+nb_line_<%=cid %>++;

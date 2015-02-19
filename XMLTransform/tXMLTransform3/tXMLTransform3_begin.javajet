@@ -1,0 +1,54 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode 
+		org.talend.core.model.process.ElementParameterParser 
+		org.talend.core.model.metadata.IMetadataTable 
+		org.talend.core.model.metadata.IMetadataColumn 
+		org.talend.core.model.process.IConnection
+		org.talend.core.model.process.IConnectionCategory
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		org.talend.core.model.metadata.types.JavaTypesManager
+		java.util.List
+		java.util.Map
+		org.talend.core.model.metadata.types.JavaType
+	" 
+%>
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+	
+	// Считываем все переменные
+	List<Map<String, String>> variables = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__VARIABLES__");
+	
+	String varName = "";
+	String varType = "";
+	String defValue = "";
+	
+	// map keys
+	final String varNameK = "NAME";
+	final String varTypeK = "TYPE";
+	final String defValueK = "DEFAULT_VALUE";
+	
+	if (variables.size() > 0) { 
+		for(Map<String, String> map : variables) {
+			varName = map.get(varNameK);
+			varType = map.get(varTypeK);
+			defValue = map.get(defValueK);
+%>	
+	<%=varType%> <%=cid %>_<%=varName%> = <%=defValue%>; 
+<%
+		}
+	}
+%>	
+	// объявление массива для namespaces
+	java.util.List<java.util.Map<String, String>> nsMap_<%=cid%> = null;
+	java.util.Map<String,String> m_<%=cid%> = null;
+
+	// объявление трансформера
+	ru.croc.xmltransform_v2.XMLTransformator xmlHelper_<%=cid%> = new ru.croc.xmltransform_v2.XMLTransformator();;
+	
+	int nb_line_<%=cid %> = 0;
+	
+
+
