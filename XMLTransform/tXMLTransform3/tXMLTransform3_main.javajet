@@ -23,6 +23,7 @@
 	IMetadataTable preMetadata = null;
 	IMetadataTable preMetadataOut = null;
 	
+	
 	if ((node.getIncomingConnections() != null ) && (node.getIncomingConnections().size() > 0)) {
 		preMetadata = node.getIncomingConnections().get(0).getMetadataTable();
 		inRowName = node.getIncomingConnections().get(0).getName(); 
@@ -32,52 +33,64 @@
 		preMetadataOut = node.getOutgoingConnections().get(0).getMetadataTable();
 	}
 
-	// Получаем название столбца, содержащего XML документ
-	String xmlColumn = ElementParameterParser.getValue(node, "__DOCUMENT_COL__");
+	// Название столбца, содержащего XML документ
+	String xmlColumn;
 	
 	List<IMetadataColumn> columns = preMetadata.getListColumns();
 	List<IMetadataColumn> columnsOut = preMetadataOut == null ? new ArrayList<IMetadataColumn>() : preMetadataOut.getListColumns();
 	Map<String, IMetadataColumn> columnsOutMap = new java.util.HashMap<String, IMetadataColumn>();
 	for (IMetadataColumn c : columnsOut)
 		columnsOutMap.put(c.getLabel(), c);
-	
-%>
-    // copying data from input to output
-<%
+
 	List< ? extends IConnection> outConns = node.getOutgoingConnections();
-    
-    for (IConnection conn : outConns) { 
-    	if (conn.getLineStyle().equals(EConnectionType.FLOW_MAIN)||conn.getLineStyle().equals(EConnectionType.FLOW_MERGE)) {
-        	outRowName = conn.getName();
+%>
+	// Initialize out structures
+<%
+	for (IConnection conn : outConns) { 
+		if (conn.getLineStyle().equals(EConnectionType.FLOW_MAIN)||conn.getLineStyle().equals(EConnectionType.FLOW_MERGE)) {
+			outRowName = conn.getName();
 %>
   			<%=outRowName %> = new <%=outRowName %>Struct();
 <%
-       } 
-    } 
-	
-	for (IMetadataColumn column : columnsOut)
-		for (IMetadataColumn columnIn : columns)
-			if ( column.getLabel().equals(columnIn.getLabel()) ) {
-				
- 		
-    	for (IConnection conn : outConns) {
-     		if (conn.getLineStyle().equals(EConnectionType.FLOW_MAIN) || conn.getLineStyle().equals(EConnectionType.FLOW_MERGE)) {
-       			outRowName = conn.getName();
-       			
- %>
- 				<%=outRowName %>.<%=column.getLabel() %> =  <%=inRowName %>.<%=column.getLabel() %>;
- <%
-       		} 
-    	} 
-	} 
+		} 
+	}
 %>
+
 	// modifing data
 	Document document_<%=cid%> = null;
 	Document child_<%=cid%>  = null;
 	org.dom4j.Document xml_<%=cid%> = null;
 	org.dom4j.Document xmlChild_<%=cid%> = null;
 	
+<%
+	Boolean initDoc = (Boolean)ElementParameterParser.getObjectValue(node,"__DOCUMENT_INIT__");
+	String initDocText = (String)ElementParameterParser.getObjectValue(node,"__DOCUMENT_INIT_TEXT__");
+	if (initDoc) {
+		// initDocText = "\"" + initDocText.replace("\n","\\n").replace("\r","\\r").replace("\"", "\\\"") + "\"";
+		xmlColumn = ElementParameterParser.getValue(node, "__DOCUMENT_OUT_COL__");
+%>
+	// Initialize document first
+	Object <%=cid%>_initDoc = <%=initDocText%>;
+	if (<%=cid%>_initDoc instanceof String) {
+		document_<%=cid%> = new Document();
+		document_<%=cid%>.setDocument((new org.dom4j.io.SAXReader()).read(
+			new java.io.StringReader( (String)<%=cid%>_initDoc )));
+	} else {
+		document_<%=cid%> = (Document)<%=cid%>_initDoc;
+	}
+<%
+		if (!"".equals(outRowName)) {
+%>
+	<%= outRowName%>.<%= xmlColumn%> = document_<%=cid%>;
+<%
+		}
+	} else {
+		xmlColumn = ElementParameterParser.getValue(node, "__DOCUMENT_COL__");
+%>
 	document_<%=cid%> = <%= inRowName%>.<%= xmlColumn%>;
+<%
+	}
+%>
 	xml_<%=cid%> = document_<%=cid%>.getDocument();
 <%
 	// Параметры работы с NS
@@ -144,7 +157,7 @@
 	}
 	if (useNS) {
 %>
-		xmlHelper_<%=cid%> = new ru.croc.xmltransform_v2.XMLTransformator(nsMap_<%=cid%>,<%=autoSearchNS%>);
+		xmlHelper_<%=cid%> = new ru.croc.xmltransform_v3.XMLTransformator(nsMap_<%=cid%>,<%=autoSearchNS%>);
 <%
 	}
 
@@ -161,6 +174,8 @@
 	List<Map<String, String>> variables = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__VARIABLES__");
 	
 	String varName = "";
+	String valName = "";
+	String valType = "";
 	String expression = "";
 	String expressionType = "";
 	
@@ -168,6 +183,8 @@
 	final String varNameK = "NAME";
 	final String expressionK = "EXPRESSION";
 	final String expressionTypeK = "EXPRESSION_TYPE";
+	final String varTypeK = "TYPE";
+	final String defValueK = "DEFAULT_VALUE";
 	
 	// Считываем все необходимые преобразования
 	List<Map<String, String>> transformations = (List<Map<String,String>>)ElementParameterParser.getObjectValue(node,"__TRANSFORMATIONS__");
@@ -177,6 +194,7 @@
 	String param1 = "";
 	String param2 = "";
 	String param3 = "";
+	Boolean isParam1Var = false;
 	Boolean isParam2Var = false;
 	
 	// map keys
@@ -196,6 +214,7 @@
 			action = map.get(actionK) == null ? "" : map.get(actionK);
 			action = action.replace("Var.", cid.concat("_"));
 			param1 = map.get(p1K) == null ? "" : map.get(p1K);
+			isParam1Var = param1.trim().startsWith("Var.");
 			param1 = param1.replace("Var.", cid.concat("_"));
 			param2 = map.get(p2K) == null ? "" : map.get(p2K);
 			isParam2Var = param2.trim().startsWith("Var.");
@@ -254,6 +273,24 @@
 						xmlHelper_<%=cid%>.setNodeText(<%=param1%>, <%=xPath%>, xml_<%=cid%>);
 <%
 	}
+	if ("moveBefore".equals(action)) {
+%>					
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.moveBefore(<%=param1%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
+	if ("moveAfter".equals(action)) {
+%>				
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.moveAfter(<%=param1%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
+	if ("moveNode".equals(action)) {
+%>	
+					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
+						xmlHelper_<%=cid%>.moveNode(<%=param1%>, <%=xPath%>, xml_<%=cid%>);
+<%
+	}
 	if ("importBefore".equals(action)) {
 %>					
 					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
@@ -282,12 +319,6 @@
 %>	
 					if ((<%=param3%> != null && !"".equals(<%=param3%>)) ) { // xPath_start
 						xmlHelper_<%=cid%>.changeNamespace(xml_<%=cid%>, <%=param1%>, <%=param2%>, <%=param3%>);
-<%
-	}
-	if ("filter".equals(action)) {
-%>	
-					if ((<%=xPath%> != null && !"".equals(<%=xPath%>)) ) { // xPath_start
-						xmlHelper_<%=cid%>.filter(xml_<%=cid%>, <%=xPath%>, <%=param1%>);
 <%
 	}
 	if ("setRoot".equals(action)) {
@@ -344,6 +375,48 @@
 						<%=cid %>_<%=varName %> = <%=expression %>;
 <%
 	}
+	if ("setValue".equals(action)) {
+		// Работа с переменными или выходом
+		valName = param1 == null ? "" : param1.trim();
+		if (isParam1Var) {
+			String tvalName = valName.replace(cid.concat("_"), "");
+			if (variables.size() > 0) {
+				for(Map<String, String> mVar : variables) {
+					if (tvalName.equals(mVar.get(varNameK))) {
+						valType = mVar.get(varTypeK);
+						break;
+					}
+				}
+			}
+		} else {
+			String rName = valName.split("\\.")[0];
+			List<IMetadataColumn> mCols = outRowName.equals(rName) ? columnsOut : columns;
+			for (IMetadataColumn mCol : mCols)
+				if ( mCol.getLabel().equals(valName) )
+					valType = mCol.getTalendType();
+		}
+		expression = param2.replace("Var.", cid.concat("_"));
+%>
+					if ( !"".equals("<%=valName%>") ) { // xPath_start
+					// TODO: 7 '<%=valType%>'
+<%
+		if (valType.contains("Document")) {
+%>
+						Object xml = <%=expression %>;
+						if (!(xml instanceof Document)) {
+							Document d = new Document();
+							d.setDocument((new org.dom4j.io.SAXReader()).read(
+								new java.io.StringReader( xml.toString() )));
+							xml = d;
+						}
+						<%=valName %> = (Document)xml;
+<%
+		} else {
+%>
+						<%=valName %> = <%=expression %>;
+<%
+		}
+	}
 %>
 				 	} // xPath_end		
 				} // condition_end
@@ -354,6 +427,22 @@
     } // trans_end 
 %>
 
+	// copying data from input to output
+<%
+	for (IMetadataColumn column : columnsOut)
+		for (IMetadataColumn columnIn : columns)
+			if ( column.getLabel().equals(columnIn.getLabel()) ) {
+
+		for (IConnection conn : outConns) {
+			if (conn.getLineStyle().equals(EConnectionType.FLOW_MAIN) || conn.getLineStyle().equals(EConnectionType.FLOW_MERGE)) {
+				outRowName = conn.getName();
+ %>
+ 				<%=outRowName %>.<%=column.getLabel() %> =  <%=inRowName %>.<%=column.getLabel() %>;
+ <%
+			} 
+		} 
+	} 
+%>
 
 
 

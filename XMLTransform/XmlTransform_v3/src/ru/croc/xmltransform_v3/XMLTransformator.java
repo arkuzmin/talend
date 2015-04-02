@@ -1,8 +1,7 @@
-package ru.croc.xmltransform_v2;
+package ru.croc.xmltransform_v3;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -69,15 +68,61 @@ public class XMLTransformator {
 	private boolean stringIsNotEmpty(String str) {
 		return str != null && !"".equals(str);
 	}
+	
+	private List<String> splitXPath(String xPath, int pos) {
+		// пример использования: "{/root/node}../@name" -> List<String>{"/root/node", "../name"} 
+		int len = xPath.length();
+		List<String> parts = new ArrayList<String>();
+		StringBuilder part = new StringBuilder();
+		char c;
+		while (pos < len)
+			switch (c = xPath.charAt(pos)) {
+				case '{':
+					pos++;
+					// переходим внутрь следующего фрагмента
+					parts.addAll(splitXPath(xPath, pos));
+					// Java не умеет обновлять параметр метода, а структуру лепить неудобно
+					pos = xPath.indexOf('}', pos) + 1;
+					break;
+				case '}':
+					pos++;
+					// сохраняем накопленный фрагмент и выходим 
+					parts.add(part.toString());
+					return parts;
+				default:
+					pos++;
+					part.append(c);
+			}
+		// если скобок совсем нет
+		parts.add(part.toString());
+		return parts;
+	}
 
-	private org.dom4j.XPath formXPathWithNS(String xPath, org.dom4j.Document xml, String docType) {
-		org.dom4j.XPath xp = xml.createXPath(xPath);
-		if (this.autoSearchNS) {
-			xp.setNamespaceURIs(formNSMapByDocType(xml, docType));
-		} else {
-			xp.setNamespaceURIs(NSM_THIS_XML_DOC_TYPE.equals(docType) ? xmlNSMap : childNSMap);
+	private List<org.dom4j.XPath> formXPathWithNS(String xPath, org.dom4j.Document xml, String docType) {
+		// разбиваем XPath на группы по скобкам {}
+		// для обхода ограничений XPath 1.0 на выдачу дублирующих узлов
+		List<org.dom4j.XPath> lxp = new ArrayList<org.dom4j.XPath>();
+		for (String sxp : splitXPath(xPath, 0)) {
+			org.dom4j.XPath xp = xml.createXPath(sxp);
+			if (this.autoSearchNS) {
+				xp.setNamespaceURIs(formNSMapByDocType(xml, docType));
+			} else {
+				xp.setNamespaceURIs(NSM_THIS_XML_DOC_TYPE.equals(docType) ? xmlNSMap : childNSMap);
+			}
+			lxp.add(xp);
 		}
-		return xp;
+		return lxp;
+	}
+	
+	private org.dom4j.Node[] SelectNodes(org.dom4j.Node[] nodes, List<org.dom4j.XPath> xPath, int ind) {
+		List r = new ArrayList();
+		if (nodes == null || ind >= xPath.size()) return nodes;
+		
+		for (org.dom4j.Node n : nodes) 
+			r.addAll(xPath.get(ind).selectNodes(n));
+		
+		ind++;
+		return SelectNodes((org.dom4j.Node[])r.toArray(new org.dom4j.Node[r.size()]), xPath, ind++);
 	}
 	
 	private Map<String, String> formNSMapByDocType(org.dom4j.Document xml, String docType) {
@@ -93,7 +138,7 @@ public class XMLTransformator {
 	}
 	
 	/**
-	* Создание нового элемента.
+	* Общий метод для создания нового элемента.
 	**/
 	private org.dom4j.Element createNewElement(Object p1, Object p2, org.dom4j.Document xml) {
 		
@@ -160,13 +205,12 @@ public class XMLTransformator {
 		
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
 		
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		
-		List list = xp.selectNodes(xml);
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		int ind = -1;
 		if (list !=  null) {
 			for (Object el : list) {
-				ind++;
+				ind = ind + 1 < textList.size() ? ind + 1 : 0;
 				text = ind < textList.size() ? textList.get(ind) : "";
 				// Если найденный узел - не root
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -213,13 +257,13 @@ public class XMLTransformator {
 		if (textList == null) textList = new ArrayList<String>();
 		
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
-		List list = xp.selectNodes(xml);
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		int ind = -1;
 		if (list !=  null) {
 			for (Object el : list) {
-				ind++;
+				ind = ind + 1 < textList.size() ? ind + 1 : 0;
 				text = ind < textList.size() ? textList.get(ind) : "";
 				// Если найденный узел - не root
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -258,13 +302,13 @@ public class XMLTransformator {
 		if (textList == null) textList = new ArrayList<String>();
 		
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
 		
-		List list = xp.selectNodes(xml);
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		int ind = -1;
 		if (list !=  null) {
 			for (Object el : list) {
-				ind++;
+				ind = ind + 1 < textList.size() ? ind + 1 : 0;
 				text = ind < textList.size() ? textList.get(ind) : "";
 				// Если найденный узел - не root
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -293,10 +337,9 @@ public class XMLTransformator {
 		String name = (String) p1;
 		String xPath = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		
-		List list = xp.selectNodes(xml);
-	
+
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -331,19 +374,36 @@ public class XMLTransformator {
 			nameList = (List<String>) p1;
 		if (nameList == null) nameList = new ArrayList<String>();
 		
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		
-		List list = xp.selectNodes(xml);
-	
+		Map<String, String> nsm = xmlNSMap;
+		if (this.autoSearchNS) {
+			nsm = formNSMapByDocType(xml, NSM_THIS_XML_DOC_TYPE);
+		}
+
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		int ind = -1;
 		if (list !=  null) {
 			for (Object el : list) {
-				ind++;
-				if (ind >= nameList.size()) break;
+				ind = ind + 1 < nameList.size() ? ind + 1 : 0;
 				name = nameList.get(ind);
 				// Если найденный узел - не root
 				if (el instanceof org.dom4j.tree.DefaultElement) {
-					((org.dom4j.tree.DefaultElement)el).setName(name);
+					org.dom4j.QName qn;
+					if (stringIsNotEmpty(name)) {
+						String[] un = name.split(":");
+						if (un.length == 2)
+							((org.dom4j.tree.DefaultElement)el).setQName(
+										org.dom4j.DocumentHelper.createQName(
+												un[1], 
+												Namespace.get(
+														un[0],
+														nsm.get(un[0])
+														)
+										)
+									);
+						else 
+							((org.dom4j.tree.DefaultElement)el).setName(name);
+					}
 				}
 			}
 		}
@@ -361,10 +421,9 @@ public class XMLTransformator {
 		
 		String xPath = (String) p1;
 		org.dom4j.Document xml = (org.dom4j.Document) p2;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		
-		List list = xp.selectNodes(xml);
-	
+
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		if (list !=  null) {
 			for (Object el : list) {
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -406,13 +465,13 @@ public class XMLTransformator {
 		if (valueList == null) valueList = new ArrayList<String>();
 		
 		org.dom4j.Document xml = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		
-		List list = xp.selectNodes(xml);
+
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		int ind = -1;
 		if (list !=  null) {
 			for (Object el : list) {
-				ind++;
+				ind = ind + 1 < valueList.size() ? ind + 1 : 0;
 				value = ind < valueList.size() ? valueList.get(ind) : "";
 				// Если найденный узел - не root
 				if (el instanceof org.dom4j.tree.DefaultElement) {
@@ -444,19 +503,127 @@ public class XMLTransformator {
 			textList = (List<String>) p1;
 		if (textList == null) textList = new ArrayList<String>();
 		
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		
-		List list = xp.selectNodes(xml);
+
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
 		int ind = -1;
 		if (list !=  null) {
 			for (Object el : list) {
-				ind++;
+				ind = ind + 1 < textList.size() ? ind + 1 : 0;
 				text = ind < textList.size() ? textList.get(ind) : "";
 				// Если найденный узел - не root
 				if (el instanceof org.dom4j.tree.DefaultElement) {
 					((org.dom4j.tree.DefaultElement) el).setText(text);
 			    }
 			}
+		}
+	}
+	
+	/**
+	* Перемещение узла из одного родительского узла в другой, перед указанным.
+	**/
+	public void moveBefore(Object p1, Object p2, Object p3) {
+	
+		if (!(p1 instanceof String && 
+			  p2 instanceof String &&
+			  p3 instanceof org.dom4j.Document)) {
+			return;
+		}
+		
+		String xPathFrom = (String) p1;
+		String xPathTo = (String) p2;
+		org.dom4j.Document xml = (org.dom4j.Document) p3;
+		List<org.dom4j.XPath> xpsF = formXPathWithNS(xPathFrom, xml, NSM_THIS_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xpsT = formXPathWithNS(xPathTo, xml, NSM_THIS_XML_DOC_TYPE);
+		
+		org.dom4j.Node[] listF = SelectNodes(new org.dom4j.Node[]{xml}, xpsF, 0);
+		if (listF !=  null) {
+			for (org.dom4j.Node node : listF) 
+				node.detach();
+		}
+				
+		org.dom4j.Node[] listT = SelectNodes(new org.dom4j.Node[]{xml}, xpsT, 0);
+		if (listT !=  null) {
+			for (org.dom4j.Node nodeT : listT) {
+				org.dom4j.Element parent = nodeT.getParent();
+				if (parent != null) {
+					int ind = parent.indexOf((org.dom4j.tree.DefaultElement)nodeT);
+					for (org.dom4j.Node nodeF : listF)
+						parent.content().add(ind, nodeF);							
+				}
+				break; // нельзя перемещать узлы несколько раз 
+			} 
+		}
+	}
+	
+	/**
+	* Перемещение узла из одного родительского узла в другой, после указанного.
+	**/
+	public void moveAfter(Object p1, Object p2, Object p3) {
+	
+		if (!(p1 instanceof String && 
+			  p2 instanceof String &&
+			  p3 instanceof org.dom4j.Document)) {
+			return;
+		}
+		
+		String xPathFrom = (String) p1;
+		String xPathTo = (String) p2;
+		org.dom4j.Document xml = (org.dom4j.Document) p3;
+		List<org.dom4j.XPath> xpsF = formXPathWithNS(xPathFrom, xml, NSM_THIS_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xpsT = formXPathWithNS(xPathTo, xml, NSM_THIS_XML_DOC_TYPE);
+		
+		org.dom4j.Node[] listF = SelectNodes(new org.dom4j.Node[]{xml}, xpsF, 0);
+		if (listF !=  null) {
+			for (org.dom4j.Node node : listF) 
+				node.detach();
+		}
+				
+		org.dom4j.Node[] listT = SelectNodes(new org.dom4j.Node[]{xml}, xpsT, 0);
+		if (listT !=  null) {
+			for (org.dom4j.Node nodeT : listT) {
+				org.dom4j.Element parent = nodeT.getParent();
+				if (parent != null) {
+					int ind = parent.indexOf((org.dom4j.tree.DefaultElement)nodeT);
+					for (org.dom4j.Node nodeF : listF)
+						parent.content().add(ind + 1, nodeF);
+				}
+				break; // нельзя перемещать узлы несколько раз 
+			} 
+		}
+	}
+	
+	/**
+	* Перемещение узла из одного родительского узла в другой, после указанного.
+	**/
+	public void moveNode(Object p1, Object p2, Object p3) {
+	
+		if (!(p1 instanceof String && 
+			  p2 instanceof String &&
+			  p3 instanceof org.dom4j.Document)) {
+			return;
+		}
+		
+		String xPathFrom = (String) p1;
+		String xPathTo = (String) p2;
+		org.dom4j.Document xml = (org.dom4j.Document) p3;
+		List<org.dom4j.XPath> xpsF = formXPathWithNS(xPathFrom, xml, NSM_THIS_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xpsT = formXPathWithNS(xPathTo, xml, NSM_THIS_XML_DOC_TYPE);
+		
+		org.dom4j.Node[] listF = SelectNodes(new org.dom4j.Node[]{xml}, xpsF, 0);
+		if (listF !=  null) {
+			for (org.dom4j.Node node : listF) 
+				node.detach();
+		}
+				
+		org.dom4j.Node[] listT = SelectNodes(new org.dom4j.Node[]{xml}, xpsT, 0);
+		if (listT !=  null) {
+			for (org.dom4j.Node nodeT : listT) {
+				for (org.dom4j.Node nodeF : listF)
+					((org.dom4j.Element)nodeT).content().add(nodeF);
+				
+				break; // нельзя перемещать узлы несколько раз 
+			} 
 		}
 	}
 	
@@ -476,11 +643,11 @@ public class XMLTransformator {
 		String xPath2 = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		org.dom4j.XPath xp2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xps2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
 		
-		List list = xp.selectNodes(xml);
-		List list2 = xp2.selectNodes(child);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
+		org.dom4j.Node[] list2 = SelectNodes(new org.dom4j.Node[]{child}, xps2, 0);
 		if (list !=  null && list2 != null) {
 			for (Object node : list) {
 				for (Object node2 : list2) {
@@ -512,11 +679,11 @@ public class XMLTransformator {
 		String xPath2 = (String) p2;
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		org.dom4j.XPath xp2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xps2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
 		
-		List list = xp.selectNodes(xml);
-		List list2 = xp2.selectNodes(child);
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
+		org.dom4j.Node[] list2 = SelectNodes(new org.dom4j.Node[]{child}, xps2, 0);
 		if (list !=  null && list2 != null) {
 			for (Object node : list) {
 				for (Object node2 : list2) {
@@ -549,12 +716,11 @@ public class XMLTransformator {
 		org.dom4j.Document xml = (org.dom4j.Document) p3;
 		org.dom4j.Document child = (org.dom4j.Document) p4;
 		
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		org.dom4j.XPath xp2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xps = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
+		List<org.dom4j.XPath> xps2 = formXPathWithNS(xPath2, child, NSM_CHILD_XML_DOC_TYPE);
 		
-		List list = xp.selectNodes(xml);
-		List list2 = xp2.selectNodes(child);
-
+		org.dom4j.Node[] list = SelectNodes(new org.dom4j.Node[]{xml}, xps, 0);
+		org.dom4j.Node[] list2 = SelectNodes(new org.dom4j.Node[]{child}, xps2, 0);
 		if (list !=  null && list2 != null) {
 			for (Object node : list) {
 				for (Object node2 : list2) {
@@ -565,136 +731,6 @@ public class XMLTransformator {
 			}
 		}	 
 	}
-	
-	private  List<String> getRefsToInt(org.dom4j.Element el) {
-    	List<String> refsTo = new ArrayList<String>();
-    	org.dom4j.Attribute attrType = el.attribute("type");
-    	if (attrType != null)
-    		refsTo.add(attrType.getValue());
-    	for (Object o : el.selectNodes(".//*")) {
-    		org.dom4j.Node n = (org.dom4j.Node)o;
-    		for (String refType : new String[]{"ref", "base", "type"}) {
-    			org.dom4j.Attribute attr = ((org.dom4j.Element)n).attribute(refType);
-    			if (attr != null)
-	    			refsTo.add(attr.getValue());
-	    	}
-    	}
-    	return refsTo;
-	}
-	
-	private  void fillRefs(List<String> parentRefs, String name,
-			Map<String, List<String>> allRefsFrom, Map<String, List<String>> allRefsTo) {
-		if (!allRefsFrom.containsKey(name))
-			allRefsFrom.put(name, new ArrayList<String>());
-		List<String> parents = allRefsFrom.get(name);
-		
-		for (String parent : parentRefs)
-			if (!parents.contains(parent))
-				parents.add(parent);
-		
-		parentRefs.add(name);
-		
-		if (allRefsTo.containsKey(name))
-			for (String child : allRefsTo.get(name))
-				fillRefs(parentRefs, child, allRefsFrom, allRefsTo);
-		
-		parentRefs.remove(name);
-	}
-	
-    private  Map<String, List<String>> getRefsFrom(org.dom4j.Document xsd, org.dom4j.XPath xp) {
-    	Map<String, List<String>> allRefsFrom = new HashMap<String, List<String>>();
-    	Map<String, List<String>> allRefsTo = new HashMap<String, List<String>>();
-    	List<String> notRoots = new ArrayList<String>();
-    	
-    	for (Object o : xp.selectNodes(xsd)) {
-    		org.dom4j.Node n = (org.dom4j.Node) o;
-    		String name = getAttrValue((org.dom4j.Element)n, "name");
-    		if (name == null) {
-    			continue;
-    		}
-    		
-    		List<String> refsTo = getRefsToInt((org.dom4j.Element)n);
-    		allRefsTo.put(name, refsTo);
-    		
-    		for (String refTo : refsTo){
-    			if (!notRoots.contains(refTo))
-    				notRoots.add(refTo);
-    		}
-    	}
-    	// now allRefsFrom contains direct links from elements
-    	// let's build full reference list
-    	
-    	for (Map.Entry<String, List<String>> kv : allRefsTo.entrySet())
-    		if (!notRoots.contains(kv.getKey()))
-    			fillRefs(new ArrayList<String>(), kv.getKey(), allRefsFrom, allRefsTo);	
-    	
-    	return allRefsFrom;
-    }
-	
-    private  boolean canPassElement(String elname, Map<String, List<String>> refsFrom, List<String> filter) {
-    	if (!refsFrom.containsKey(elname)) return false;
-    	if (filter.contains(elname)) return true;
-    	for (String ref : refsFrom.get(elname)) {
-    		if (filter.contains(ref))
-    			return true;
-    	}
-    	return false;
-    }
-    
-    /**
-     * Возвращает значение атрибута для елемента.
-     * @param el
-     * @param atName
-     * @return
-     */
-    private String getAttrValue(org.dom4j.Element el, String atName) {
-    	org.dom4j.Attribute attrName = el.attribute(atName);
-		if (attrName == null) {
-			return null;
-		}
-		return attrName.getValue();
-    }
-    
-    
-	public void filter(Object p1, Object p2, Object p3) {
-	
-		if (!(p1 instanceof org.dom4j.Document && 
-			  p2 instanceof String && 
-			  p3 instanceof String)) {
-				return;
-		}
-		
-		org.dom4j.Document xml = (org.dom4j.Document) p1;
-		String xPath = (String) p2 + "/child::*";
-		String filterStr = (String) p3;
-		org.dom4j.XPath xp = formXPathWithNS(xPath, xml, NSM_THIS_XML_DOC_TYPE);
-		
-		List<String> filter = new LinkedList<String>();
-		
-		//Формируем фильтр
-		String[] filterArr = filterStr.split(",");
-		for (String str : filterArr) {
-			filter.add(str);
-		}
-		
-		//Получаем ссылки
-		Map<String, List<String>> refsFrom = getRefsFrom(xml, xp);
-		
-		List list = xp.selectNodes(xml);
-		if (list != null) {
-			for (Object node : list) {
-				if (node instanceof org.dom4j.tree.DefaultElement) {
-					org.dom4j.tree.DefaultElement el = (org.dom4j.tree.DefaultElement) node;
-					String elname = getAttrValue(el, "name");
-					// Если узел не нужен - удаляем
-					if (!canPassElement(elname, refsFrom, filter)) {
-						el.getParent().remove(el);
-					}
-				}		
-			}
-		}
-	}
-	
 	
 	/**
 	 * Замена namespace в документе	
@@ -766,9 +802,9 @@ public class XMLTransformator {
   			}
   		
   		org.dom4j.Document doc = (org.dom4j.Document) p1;
-  		org.dom4j.XPath xp = formXPathWithNS((String)p2, doc, NSM_THIS_XML_DOC_TYPE);
+  		List<org.dom4j.XPath> xps = formXPathWithNS((String)p2, doc, NSM_THIS_XML_DOC_TYPE);
   		
-  			org.dom4j.Node n = xp.selectSingleNode(doc);
+  			org.dom4j.Node n = xps.get(0).selectSingleNode(doc);
   			doc.setRootElement((org.dom4j.Element)n);
   			return doc;
   		
@@ -795,41 +831,72 @@ public class XMLTransformator {
   			}
   		
   		org.dom4j.Document doc = (org.dom4j.Document) p1;
-  		org.dom4j.XPath xp = formXPathWithNS((String)p2, doc, NSM_THIS_XML_DOC_TYPE);
+  		List<org.dom4j.XPath> xps = formXPathWithNS((String)p2, doc, NSM_THIS_XML_DOC_TYPE);
   		String mthd = (String)p3;
   		boolean isList = p4 == null ? true : (Boolean)p4; 
+  		
   		List<org.dom4j.Node> nList = new ArrayList<org.dom4j.Node>();
   		List<Object> rList = new ArrayList<Object>();
   		
-  		if (!isList) {
-  			org.dom4j.Node n_ = xp.selectSingleNode(doc);
-  			if (n_ != null) nList.add(n_);
-  		} else
-  			nList = xp.selectNodes(doc);
+  		org.dom4j.Node[] parents = new org.dom4j.Node[]{doc};
+  		org.dom4j.XPath lastXP = xps.get(xps.size() - 1);
+  		xps.remove(xps.size() - 1);
+  		if (xps.size() > 0)   			
+  			parents = SelectNodes(parents, xps, 0);
   		
-  		for (org.dom4j.Node n : nList) {
+  		List evL = new ArrayList();
+  		for (org.dom4j.Node n : parents) {
+  			Object ev = lastXP.evaluate(n); 
+	  		
+	  		if (null == ev || !(ev instanceof List)) {
+	  			evL.add(ev);
+	  		} else {
+	  			if (!isList) {
+	  				if (((List)ev).size() == 0 )
+	  					evL.add(null);
+	  				else
+	  					evL.add( ((List)ev).get(0) );
+	  			} else {
+	  				if ( ((List)ev).size() == 0 )
+	  					evL.add(null);
+	  				else
+	  					evL.addAll((List)ev);
+	  			}
+	  		}
+  		}
   		
-	  		if ("TEXT".equals(mthd)) {
-	  			rList.add( n.getText() );
+  		for (Object o : evL) {
+  			boolean isNode = o != null && o instanceof org.dom4j.Node;
+  		
+	  		if ("NTEXT".equals(mthd)) {
+	  			rList.add( o == null ? "" : (isNode ? ((org.dom4j.Node)o).getText() : o.toString()) );
+	  		} else if ("TEXT".equals(mthd)) {
+	  			if ( o != null )
+	  				rList.add( isNode ? ((org.dom4j.Node)o).getText() : o.toString() );
 	  		} else if ("NODE_TEXT".equals(mthd)) {
-	  			rList.add( n.asXML() );
+	  			if (isNode)
+	  				rList.add( ((org.dom4j.Node)o).asXML() );
 	  		} else if ("NODE_PRETTY_TEXT".equals(mthd)) {
-	  			org.dom4j.io.OutputFormat format = org.dom4j.io.OutputFormat.createPrettyPrint();
-	  	    	java.io.StringWriter out = new java.io.StringWriter();
-	  			org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter( out, format );
-	  	        try {
-	  	        	writer.write( n );
-	  	        	writer.close();
-	  	        	return out.toString();
-	  	        } catch (Exception e) {
-	  	        	rList.add( "<EXCEPTION><![CDATA[" + e.getMessage() + "]]></EXCEPTION>" );
-	  	        }
+	  			if (isNode) {
+		  			org.dom4j.io.OutputFormat format = org.dom4j.io.OutputFormat.createPrettyPrint();
+		  	    	java.io.StringWriter out = new java.io.StringWriter();
+		  			org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter( out, format );
+		  	        try {
+		  	        	writer.write( (org.dom4j.Node)o );
+		  	        	writer.close();
+		  	        	return out.toString();
+		  	        } catch (Exception e) {
+		  	        	rList.add( "<EXCEPTION><![CDATA[" + e.getMessage() + "]]></EXCEPTION>" );
+		  	        }
+	  			}
 	  		} else if ("NODE".equals(mthd)) {
-	  			try {
-	  				rList.add( DocumentHelper.parseText(n.asXML()) );
-				} catch (DocumentException e) {
-					rList.add( "<EXCEPTION><![CDATA[" + e.getMessage() + "]]></EXCEPTION>" );
-				}
+	  			if (isNode) {
+		  			try {
+		  				rList.add( DocumentHelper.parseText(((org.dom4j.Node)o).asXML()) );
+					} catch (DocumentException e) {
+						rList.add( "<EXCEPTION><![CDATA[" + e.getMessage() + "]]></EXCEPTION>" );
+					}
+	  			}
 	  		}
 	  		
   		}

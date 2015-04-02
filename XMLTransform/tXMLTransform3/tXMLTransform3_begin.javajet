@@ -29,15 +29,31 @@
 	final String varNameK = "NAME";
 	final String varTypeK = "TYPE";
 	final String defValueK = "DEFAULT_VALUE";
+%>
+	Object <%=cid %>_vR_tmp;
+<%
 	
 	if (variables.size() > 0) { 
 		for(Map<String, String> map : variables) {
 			varName = map.get(varNameK);
 			varType = map.get(varTypeK);
 			defValue = map.get(defValueK);
+			if ("routines.system.Document".equals(varType)) {
 %>	
-	<%=varType%> <%=cid %>_<%=varName%> = <%=defValue%>; 
+	<%=cid %>_vR_tmp = <%=defValue%>;
+	if (!(<%=cid %>_vR_tmp instanceof Document)) {
+		Document d = new Document();
+		d.setDocument((new org.dom4j.io.SAXReader()).read(
+			new java.io.StringReader( <%=cid %>_vR_tmp.toString() )));
+		<%=cid %>_vR_tmp = d;
+	}
+	<%=varType%> <%=cid %>_<%=varName%> = (Document)<%=cid %>_vR_tmp; 
 <%
+			} else {
+%>
+	<%=varType%> <%=cid %>_<%=varName%> = <%=defValue%>;
+<%
+			}
 		}
 	}
 %>	
@@ -46,7 +62,14 @@
 	java.util.Map<String,String> m_<%=cid%> = null;
 
 	// объявление трансформера
-	ru.croc.xmltransform_v2.XMLTransformator xmlHelper_<%=cid%> = new ru.croc.xmltransform_v2.XMLTransformator();;
+	ru.croc.xmltransform_v3.XMLTransformator xmlHelper_<%=cid%> = new ru.croc.xmltransform_v3.XMLTransformator();;
+	
+	// объявление анонимных классов
+<%
+	String classDef = (String)ElementParameterParser.getObjectValue(node,"__CLASSDEF__");
+	if (classDef.contains("#XMLFN#")) classDef = "";
+%>
+<%=classDef%>
 	
 	int nb_line_<%=cid %> = 0;
 	
